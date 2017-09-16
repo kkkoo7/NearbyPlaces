@@ -1,0 +1,63 @@
+<fragment xmlns:map="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/map"
+    android:name="com.google.android.gms.maps.SupportMapFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.learning.kulendra.briskytask.MapsActivity">
+
+    <Button
+        android:id="@+id/start_updates_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|top"
+        android:text="StartUpdate"
+        android:padding="10dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/common_google_signin_btn_text_light_default"
+        android:paddingLeft="10dp"
+        android:onClick="startUpdatesButtonHandler"/>
+    <Button
+        android:id="@+id/stop_updates_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|top"
+        android:text="Enter"
+        android:padding="10dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/common_google_signin_btn_text_light_default"
+        android:paddingRight="10dp"
+        android:onClick="stopUpdatesButtonHandler"/>
+    <EditText
+        android:id="@+id/radius"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center|top"
+        android:hint="Radius"
+        android:padding="10dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/common_google_signin_btn_text_light_default"
+        android:paddingRight="10dp"/>
+
+    <TextView
+        android:id="@+id/latitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|bottom"
+        android:padding="10dp"
+        android:layout_marginBottom="20dp"
+        android:background="@color/common_google_signin_btn_text_light_default"
+        android:paddingLeft="10dp"/>
+    <TextView
+        android:id="@+id/longitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:padding="10dp"
+        android:layout_marginBottom="20dp"
+        android:background="@color/common_google_signin_btn_text_light_default"
+        android:paddingLeft="10dp"/>
+</fragment>
+
+
