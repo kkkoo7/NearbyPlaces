@@ -80,11 +80,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private double radius=500;
 
     FindPlaces f;
+    CalculateDistance cd;
+    SendNotification sn;
     int flag=0;
 
     Location dummy;
 
-    NotificationManager manager;
+    //NotificationManager manager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -328,9 +330,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getUpdatedLocation();
         if(saved!=null)
         {
-            savedDist=distance(mLastLocation.getLatitude(),mLastLocation.getLongitude(),saved.latitude,saved.longitude);
+            cd = new CalculateDistance(mLastLocation.getLatitude(),mLastLocation.getLongitude(),saved.latitude,saved.longitude);
+            double savedDist=cd.distance();
             if(savedDist<5){
-                sendNotification(savedDist);
+                Log.d(TAG,"distance calculated is: "+savedDist);
+                ArrayList<String> not=new ArrayList<>();
+                not.add(savedname);
+                not.add("Lat: "+saved.latitude+"\nLong: "+saved.longitude);
+                not.add(""+savedDist);
+                sn=new SendNotification(this,"Brisky",savedname+" is near you",not);
+                sn.sendNotification();
             }
         }
     }
@@ -416,53 +425,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "onConnectionFailed: " + result);
         }
-    }
-
-    public void sendNotification(double dist){
-        ArrayList<String> not=new ArrayList<>();
-        not.add(savedname);
-        not.add("Lat: "+saved.latitude+"\nLong: "+saved.longitude);
-        not.add(""+dist);
-        addNotification(not);
-    }
-    private void addNotification(ArrayList<String> RecievedPOS) {
-        String channel="ChannelID1";
-        NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(this,channel)
-                        .setSmallIcon(R.drawable.abc)
-                        .setContentTitle("Brisky Notification")
-                        .setContentText(savedname+" is near you")
-                        .setAutoCancel(true);
-
-        Intent notificationIntent = new Intent(this, NotificationView.class);
-        notificationIntent.putStringArrayListExtra("EXTRA",RecievedPOS);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(contentIntent);
-
-        // Add as notification
-        manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(0, builder.build());
-    }
-
-    private double distance(double lat1, double lon1, double lat2, double lon2) {
-        double theta = lon1 - lon2;
-        double dist = Math.sin(deg2rad(lat1))
-                * Math.sin(deg2rad(lat2))
-                + Math.cos(deg2rad(lat1))
-                * Math.cos(deg2rad(lat2))
-                * Math.cos(deg2rad(theta));
-        dist = Math.acos(dist);
-        dist = rad2deg(dist);
-        dist = dist * 60 * 1.1515;
-        return (dist);
-    }
-
-    private double deg2rad(double deg) {
-        return (deg * Math.PI / 180.0);
-    }
-
-    private double rad2deg(double rad) {
-        return (rad * 180.0 / Math.PI);
     }
 }
