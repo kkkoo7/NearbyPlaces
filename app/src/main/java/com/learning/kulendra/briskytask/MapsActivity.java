@@ -1,23 +1,13 @@
 package com.learning.kulendra.briskytask;
 
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,9 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -38,23 +26,16 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.location.places.GeoDataClient;
-import com.google.android.gms.location.places.Places;
-import com.google.android.gms.location.places.PlaceDetectionClient;
 
 import java.util.ArrayList;
 
 
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, OnConnectionFailedListener {
-
-    private GoogleApiClient mGoogleApiClient;
     private GoogleMap mMap;
-    private FusedLocationProviderClient mFusedLocationClient;
     private static final String TAG = MapsActivity.class.getSimpleName();
     private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 34;
     protected Location mLastLocation;
-    protected LocationManager locationManager;
 
     protected Boolean mRequestingLocationUpdates;
     private double mLatitudeLabel;
@@ -66,28 +47,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected TextView mLongitudeTextView;
     protected EditText mEditTextView;
 
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 20;
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
     protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
     protected final static String LOCATION_KEY = "location-key";
-
-    protected GeoDataClient mGeoDataClient;
-    protected PlaceDetectionClient mPlaceDetectionClient;
 
     private LatLng saved;
     private String savedname;
     private double savedDist;
     private double radius=500;
+    //private ArrayList<Marker> markers=new ArrayList<>();
+    LatLng home;
 
     FindPlaces f;
     CalculateDistance cd;
     SendNotification sn;
+    RecievedLatLong pos=new RecievedLatLong();
     int flag=0;
 
     Location dummy;
-
-    //NotificationManager manager;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,24 +88,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        checkGPSStatus();
-        mRequestingLocationUpdates = false;
 
-        mGeoDataClient = Places.getGeoDataClient(this, null);
-        mPlaceDetectionClient=Places.getPlaceDetectionClient(this,null);
-        mGoogleApiClient = new GoogleApiClient
-                .Builder(this)
-                .addApi(Places.GEO_DATA_API)
-                .addApi(Places.PLACE_DETECTION_API)
-                .enableAutoManage(this, this)
-                .build();
-        mGoogleApiClient.connect();
+        this.startService(new Intent(this,GetUpdatedLocation .class));
+
+        mRequestingLocationUpdates = false;
         dummy= new Location("dummy");
         dummy.setLatitude(17.3850);
         dummy.setLongitude(78.4867);
         mLastLocation=dummy;
         f=new FindPlaces(dummy,radius);
-        getUpdatedLocation();
         updateValuesFromBundle(savedInstanceState);
     }
 
@@ -142,7 +109,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             startLocationPermissionRequest();
         } else {
             Log.d(TAG,"Permission was already granted");
-            getUpdatedLocation();
         }
     }
 
@@ -169,7 +135,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getUpdatedLocation();
+                    Log.d(TAG,"Permission Granted");
 
                 } else {
                     Log.i(TAG, "Permission Denied.");
@@ -180,16 +146,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
     private void moveMap(Location loc) {
         mLatitudeLabel=loc.getLatitude();
         mLongitudeLabel=loc.getLongitude();
         LatLng latLng = new LatLng(mLatitudeLabel, mLongitudeLabel);
 
-            mMap.addMarker(new MarkerOptions()
-                    .position(latLng)
-                    .draggable(true)
-                    .title("Home Location"));
+            if(flag==0) {
+                mMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .draggable(true)
+                        .title("Home Location"));
+                flag++;
+            }
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
@@ -219,35 +187,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void checkGPSStatus() {
-        LocationManager locationManager = null;
-        boolean gps_enabled = false;
-        boolean network_enabled = false;
-        if ( locationManager == null ) {
-            locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        }
-        try {
-            gps_enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        } catch (Exception ex){}
-        try {
-            network_enabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        } catch (Exception ex){}
-        if ( !gps_enabled && !network_enabled ){
-            AlertDialog.Builder dialog = new AlertDialog.Builder(MapsActivity.this);
-            dialog.setMessage("GPS not enabled");
-            dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    //this will navigate user to the device location settings screen
-                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    startActivity(intent);
-                }
-            });
-            AlertDialog alert = dialog.create();
-            alert.show();
-        }
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -264,7 +203,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!mRequestingLocationUpdates) {
             mRequestingLocationUpdates = true;
             setButtonsEnabledState();
-            getUpdatedLocation();
+            mLastLocation.setLatitude(pos.Latitude);
+            mLastLocation.setLongitude(pos.Longitude);
             moveMap(mLastLocation);
             Location last=mLastLocation;
             f.getExecute();
@@ -284,6 +224,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mRequestingLocationUpdates = false;
             setButtonsEnabledState();
             mMap.clear();
+            home=new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
+            mMap.addMarker(new MarkerOptions()
+                    .position(home)
+                    .draggable(true)
+                    .title("Home Location"));
         }
         mEditTextView.setFocusable(false);
     }
@@ -310,9 +255,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
 
-        if (mRequestingLocationUpdates) {
-            getUpdatedLocation();
-        }
+            mLastLocation.setLatitude(pos.Latitude);
+            mLastLocation.setLongitude(pos.Longitude);
+            Log.d(TAG,"In Resume:"+pos.Latitude+" "+pos.Longitude);
+            //moveMap(mLastLocation);
         Log.d(TAG,"Venues"+f.g1.size());
     }
 
@@ -320,18 +266,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onPause(){
         super.onPause();
         Log.d(TAG,"onPause");
-        //getUpdatedLocation();
     }
 
     @Override
     protected void onStop(){
         super.onStop();
         Log.d(TAG,"onStop");
-        getUpdatedLocation();
         if(saved!=null)
         {
             cd = new CalculateDistance(mLastLocation.getLatitude(),mLastLocation.getLongitude(),saved.latitude,saved.longitude);
-            double savedDist=cd.distance();
+            savedDist=cd.distance();
             if(savedDist<5){
                 Log.d(TAG,"distance calculated is: "+savedDist);
                 ArrayList<String> not=new ArrayList<>();
@@ -351,47 +295,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         moveMap(mLastLocation);
     }
 
-    protected void getUpdatedLocation()
-    {
-            //locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            locationManager= (LocationManager)getApplicationContext().getSystemService(LOCATION_SERVICE);
-            int pstate=ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-            boolean gstate=locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            Criteria criteria = new Criteria();
-            if(gstate&&(pstate==PackageManager.PERMISSION_GRANTED)){
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, new LocationListener() {
-                @Override
-                public void onLocationChanged(Location location) {
-                    // TODO Auto-generated method stub
-                    if(location!=null)
-                    {
-                        mLastLocation=location;
-                        flag++;
-                    }
-                }
-
-                @Override
-                public void onProviderDisabled(String provider) {
-                    // TODO Auto-generated method stub
-                }
-
-                @Override
-                public void onProviderEnabled(String provider) {
-                    // TODO Auto-generated method stub
-                }
-
-                @Override
-                public void onStatusChanged(String provider, int status,
-                                            Bundle extras) {
-                    // TODO Auto-generated method stub
-                }
-            });
-        }
-        if (locationManager != null&&flag==0) {
-            mLastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            //mLastLocation = locationManager.getLastKnownLocation(locationManager.PASSIVE_PROVIDER);
-        }
-    }
 
 
     @Override
