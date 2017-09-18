@@ -28,7 +28,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
-
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, OnConnectionFailedListener {
@@ -50,17 +51,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
     protected final static String LOCATION_KEY = "location-key";
 
+    private ArrayList<String> MyData;
     private LatLng saved;
     private String savedname;
-    private double savedDist;
     private double radius=500;
-    //private ArrayList<Marker> markers=new ArrayList<>();
+    private Map<Marker, ArrayList<String>> map=new HashMap<Marker,ArrayList<String>>();
     LatLng home;
 
     FindPlaces f;
     CalculateDistance cd;
     SendNotification sn;
     RecievedLatLong pos=new RecievedLatLong();
+    private Marker marked;
     int flag=0;
 
     Location dummy;
@@ -89,7 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        this.startService(new Intent(this,GetUpdatedLocation .class));
+        MapsActivity.this.startService(new Intent(this,GetUpdatedLocation .class));
         mRequestingLocationUpdates = false;
         dummy= new Location("dummy");
         dummy.setLatitude(17.3850);
@@ -168,27 +170,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void mark(Location loc,String name){
+    private void mark(Location loc,ArrayList<String>MyData){
         LatLng l= new LatLng(loc.getLatitude(),loc.getLongitude());
         mMap.addCircle(new CircleOptions().center(l).radius(20).fillColor(Color.BLUE).strokeColor(Color.RED));
-        Marker s1=mMap.addMarker(new MarkerOptions().position(l).draggable(true).title(name));
+        Marker s1=mMap.addMarker(new MarkerOptions().position(l).draggable(true).title(MyData.get(0)));
+        map.put(s1,MyData);
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener()
         {
             @Override
             public boolean onMarkerClick(Marker arg0) {
                 if(arg0 != null){
-                    // if marker  source is clicked
-                    Toast.makeText(MapsActivity.this, "Saving "+arg0.getTitle(), Toast.LENGTH_SHORT).show();// display toast
-                    saved=arg0.getPosition();
-                    savedname=arg0.getTitle();
-                    ArrayList<String> savedPlace=new ArrayList<>();
-                    savedPlace.add(savedname);
-                    savedPlace.add(""+saved.latitude);
-                    savedPlace.add(""+saved.longitude);
-                    Intent intent = new Intent();
-                    intent.putStringArrayListExtra("EXTRA",savedPlace);
-                    intent.setAction("com.brisky.SAVEDPLACE_INTENT");
-                    sendBroadcast(intent);
+                    Intent intent = new Intent(MapsActivity.this,ShowPlacesDetails.class);
+                    intent.putStringArrayListExtra("EXTRA",map.get(arg0));
+                    MapsActivity.this.startActivity(intent);
                     return true;
                 }
                 return  false;
@@ -216,31 +210,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mLastLocation.setLatitude(pos.Latitude);
             mLastLocation.setLongitude(pos.Longitude);
             moveMap(mLastLocation);
-            Location last=mLastLocation;
+            //Location last=mLastLocation;
             f.getExecute();
             for (int i=0;i<f.g1.size();i++)
             {
+                MyData=new ArrayList<>();
+                MyData.add(f.g1.get(i).getName());
+                MyData.add(f.g1.get(i).getCategory());
+                MyData.add(f.g1.get(i).getRating());
+                MyData.add(f.g1.get(i).getOpenNow());
+                MyData.add(f.g1.get(i).getVicinity());
                 Location near=f.g1.get(i).getL();
+                MyData.add(""+near.getLatitude());
+                MyData.add(""+near.getLongitude());
                 Log.d(TAG,"lat"+near.getLatitude()+"long"+near.getLongitude());
-                mark(near,f.g1.get(i).getName());
+                mark(near,MyData);
             }
         }
     }
 
     public void stopUpdatesButtonHandler(View view) {
-        radius=Double.parseDouble(mEditTextView.getText().toString());
-        f.getExecuteInstance(radius,mLastLocation);
-        if (mRequestingLocationUpdates) {
-            mRequestingLocationUpdates = false;
-            setButtonsEnabledState();
-            mMap.clear();
-            home=new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-            mMap.addMarker(new MarkerOptions()
-                    .position(home)
-                    .draggable(true)
-                    .title("Home Location"));
+        if (mEditTextView.getText().toString() != null) {
+            radius = Double.parseDouble(mEditTextView.getText().toString());
+            f.getExecuteInstance(radius, mLastLocation);
+            if (mRequestingLocationUpdates) {
+                mRequestingLocationUpdates = false;
+                setButtonsEnabledState();
+                mMap.clear();
+                map.clear();
+                home = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                mMap.addMarker(new MarkerOptions()
+                        .position(home)
+                        .draggable(true)
+                        .title("Home Location"));
+            }
+            mEditTextView.setFocusable(false);
         }
-        mEditTextView.setFocusable(false);
     }
 
     private void setButtonsEnabledState() {
@@ -281,27 +286,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStop(){
         super.onStop();
+        mLastLocation.setLatitude(pos.Latitude);
+        mLastLocation.setLongitude(pos.Longitude);
         Log.d(TAG,"onStop");
-        /*if(saved!=null)
-        {
-            cd = new CalculateDistance(mLastLocation.getLatitude(),mLastLocation.getLongitude(),saved.latitude,saved.longitude);
-            savedDist=cd.distance();
-            if(savedDist<5){
-                Log.d(TAG,"distance calculated is: "+savedDist);
-                ArrayList<String> not=new ArrayList<>();
-                not.add(savedname);
-                not.add("Lat: "+saved.latitude+"\nLong: "+saved.longitude);
-                not.add(""+savedDist);
-                sn=new SendNotification(this,"Brisky",savedname+" is near you",not);
-                sn.sendNotification();
-            }
-        }*/
     }
     @Override
     protected void onRestart()
     {
         super.onRestart();
         Log.d(TAG,"onRestart");
+        mLastLocation.setLatitude(pos.Latitude);
+        mLastLocation.setLongitude(pos.Longitude);
         moveMap(mLastLocation);
     }
 
@@ -329,7 +324,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // is not null.
                 mLastLocation = savedInstanceState.getParcelable(LOCATION_KEY);
             }
-            moveMap(mLastLocation);
+            //if(mLastLocation!=null)
+                moveMap(mLastLocation);
         }
     }
 

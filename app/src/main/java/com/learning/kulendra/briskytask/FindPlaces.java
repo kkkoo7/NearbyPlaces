@@ -184,6 +184,9 @@ public class FindPlaces extends ListActivity {
                             String log=jsonArray.getJSONObject(i).getJSONObject("geometry").getJSONObject("location").getString("lng");
                             poi.setL(Double.parseDouble(lat),Double.parseDouble(log));
                         }
+                        if(jsonArray.getJSONObject(i).has("vicinity")){
+                            poi.setVicinity(jsonArray.getJSONObject(i).optString("vicinity"));
+                        }
                     }
                     temp.add(poi);
                 }

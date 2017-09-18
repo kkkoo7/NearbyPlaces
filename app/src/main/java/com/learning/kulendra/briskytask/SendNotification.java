@@ -45,11 +45,9 @@ public class SendNotification extends Service{
     {
         Log.d(TAG, "onStartCommand");
         super.onStartCommand(intent, flags, startId);
-        //intent=new Intent();
-        //this.intent=intent;
         NotificationArray=intent.getStringArrayListExtra("EXTRA");
-        LatitudeS=Double.parseDouble(NotificationArray.get(1));
-        LongitudeS=Double.parseDouble(NotificationArray.get(2));
+        LatitudeS=Double.parseDouble(NotificationArray.get(5));
+        LongitudeS=Double.parseDouble(NotificationArray.get(6));
         R=new RecievedLatLong();
         LatitudeL=R.Latitude;
         LongitudeL=R.Longitude;
@@ -58,7 +56,6 @@ public class SendNotification extends Service{
         if(distance<1) {
             NotificationTitle = NotificationArray.get(0);
             NotificationText = NotificationArray.get(0) + " is near you";
-            //NotificationArray = messg;
             sendNotification();
         }
         Log.d(TAG,"accessing Lat: "+LatitudeL+" "+LongitudeL);

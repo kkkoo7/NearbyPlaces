@@ -8,6 +8,7 @@ public class GooglePlace {
 	private String rating;
 	private String open;
 	private Location l;
+	private String vicinity;
 
 	public GooglePlace() {
 		this.name = "";
@@ -44,6 +45,10 @@ public class GooglePlace {
 	public void setOpenNow(String open) {
 		this.open = open;
 	}
+
+	public void setVicinity(String vicinity){this.vicinity=vicinity;}
+
+    public String getVicinity(){return vicinity;}
 
 	public String getOpenNow() {
 		return open;
