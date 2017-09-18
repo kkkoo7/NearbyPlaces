@@ -34,11 +34,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center|top"
-        android:hint="Radius"
+        android:hint="RadiusInM"
         android:padding="10dp"
         android:layout_marginTop="20dp"
+        android:layout_marginLeft="25dp"
         android:background="@color/common_google_signin_btn_text_light_default"
-        android:paddingRight="10dp"/>
+        android:paddingEnd="0dp"
+        android:paddingRight="0dp"/>
 
     <TextView
         android:id="@+id/latitude"
