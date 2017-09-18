@@ -90,7 +90,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         this.startService(new Intent(this,GetUpdatedLocation .class));
-
         mRequestingLocationUpdates = false;
         dummy= new Location("dummy");
         dummy.setLatitude(17.3850);
@@ -147,11 +146,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     private void moveMap(Location loc) {
-        mLatitudeLabel=loc.getLatitude();
-        mLongitudeLabel=loc.getLongitude();
-        LatLng latLng = new LatLng(mLatitudeLabel, mLongitudeLabel);
+        if(loc.getLatitude()!=0&&loc.getLongitude()!=0) {
+            Log.d(TAG,"moveMap Called with non zero latlong:"+loc.getLatitude()+" "+loc.getLongitude());
+            mLatitudeLabel = loc.getLatitude();
+            mLongitudeLabel = loc.getLongitude();
+            LatLng latLng = new LatLng(mLatitudeLabel, mLongitudeLabel);
 
-            if(flag==0) {
+            if (flag == 0) {
                 mMap.addMarker(new MarkerOptions()
                         .position(latLng)
                         .draggable(true)
@@ -159,11 +160,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 flag++;
             }
 
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-        mMap.getUiSettings().setZoomControlsEnabled(true);
-        mLatitudeTextView.setText(""+mLatitudeLabel);
-        mLongitudeTextView.setText(""+mLongitudeLabel);
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+            mMap.getUiSettings().setZoomControlsEnabled(true);
+            mLatitudeTextView.setText("" + mLatitudeLabel);
+            mLongitudeTextView.setText("" + mLongitudeLabel);
+        }
     }
 
     private void mark(Location loc,String name){
@@ -179,6 +181,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Toast.makeText(MapsActivity.this, "Saving "+arg0.getTitle(), Toast.LENGTH_SHORT).show();// display toast
                     saved=arg0.getPosition();
                     savedname=arg0.getTitle();
+                    ArrayList<String> savedPlace=new ArrayList<>();
+                    savedPlace.add(savedname);
+                    savedPlace.add(""+saved.latitude);
+                    savedPlace.add(""+saved.longitude);
+                    Intent intent = new Intent();
+                    intent.putStringArrayListExtra("EXTRA",savedPlace);
+                    intent.setAction("com.brisky.SAVEDPLACE_INTENT");
+                    sendBroadcast(intent);
                     return true;
                 }
                 return  false;
@@ -258,7 +268,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mLastLocation.setLatitude(pos.Latitude);
             mLastLocation.setLongitude(pos.Longitude);
             Log.d(TAG,"In Resume:"+pos.Latitude+" "+pos.Longitude);
-            //moveMap(mLastLocation);
+            moveMap(mLastLocation);
         Log.d(TAG,"Venues"+f.g1.size());
     }
 
@@ -272,7 +282,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStop(){
         super.onStop();
         Log.d(TAG,"onStop");
-        if(saved!=null)
+        /*if(saved!=null)
         {
             cd = new CalculateDistance(mLastLocation.getLatitude(),mLastLocation.getLongitude(),saved.latitude,saved.longitude);
             savedDist=cd.distance();
@@ -285,7 +295,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 sn=new SendNotification(this,"Brisky",savedname+" is near you",not);
                 sn.sendNotification();
             }
-        }
+        }*/
     }
     @Override
     protected void onRestart()
