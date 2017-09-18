@@ -273,7 +273,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mLastLocation.setLatitude(pos.Latitude);
             mLastLocation.setLongitude(pos.Longitude);
             Log.d(TAG,"In Resume:"+pos.Latitude+" "+pos.Longitude);
-            moveMap(mLastLocation);
+           // moveMap(mLastLocation);
         Log.d(TAG,"Venues"+f.g1.size());
     }
 
